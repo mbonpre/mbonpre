@@ -17,11 +17,11 @@
             inset:0;
             background-size:cover;
             background-position:center;
-            opacity:0; /* Caché par défaut */
+            opacity:0; 
             transition:opacity 1s ease;
         }
         .slide.active{
-            opacity:1; /* La slide active est visible */
+            opacity:1; 
         }
 
         /* calque sombre + contenu */
@@ -30,7 +30,6 @@
 
         .top-row{display:flex;align-items:center;gap:12px}
         .avatar{width:64px;height:64px;border-radius:50%;overflow:hidden;flex:0 0 64px;border:2px solid rgba(255,255,255,0.12)}
-        /* L'avatar utilise photo1.jpg */
         .avatar img{width:100%;height:100%;object-fit:cover} 
         .title{font-size:18px;margin:0}
         .subtitle{font-size:13px;opacity:0.85}
@@ -77,7 +76,7 @@
                 </div>
 
                 <div class="controls">
-                    <button class="btn" id="playBtn">▶️ Play</button>
+                    <button class="btn" id="playBtn" disabled>▶️ Play</button>
                     <button class="btn" id="pauseBtn">⏸️ Pause</button>
                     <div class="progress" id="progress"><div class="fill" id="fill"></div></div>
                     <div class="small" id="time">0:00</div>
@@ -104,7 +103,6 @@
             slides[currentSlide].classList.add('active');
         }
 
-        // Le diaporama tourne toutes les 8 secondes
         let slideInterval = setInterval(nextSlide, 8000); 
 
         /* --- Messages synchronisés à la musique --- */
@@ -129,18 +127,16 @@
         let shownIndex = -1; 
         let typingTimer = null;
         let showLaunched = false; 
-        let attemptPlayCount = 0; // Compteur pour les tentatives de lecture
 
         function formatTime(s){
             const m = Math.floor(s/60); const sec = Math.floor(s%60).toString().padStart(2,'0');
             return m+':'+sec;
         }
         
-        // Fonction pour démarrer la lecture et gérer l'interface
         function startPlayback() {
-             // Démarrer la musique (après que le navigateur le permette)
+            // Démarre la lecture et débloque le son
             audio.play(); 
-            audio.muted = false; // Démute si la lecture est autorisée
+            audio.muted = false; 
             
             // Lancer le premier message
             if (showLaunched === false) {
@@ -160,29 +156,16 @@
             
         }
 
-        // Tente de démarrer l'audio au chargement (cela réussit souvent si l'audio est muet au départ)
-        function attemptPlay() {
-            if (attemptPlayCount > 5) return; // Arrêter après 5 tentatives
-            attemptPlayCount++;
+        // Tente de jouer dès que la page est chargée et rend le bouton disponible si l'autoplay échoue
+        document.addEventListener('DOMContentLoaded', () => {
             audio.play().then(() => {
-                // Lecture réussie, le navigateur a accepté
+                // Autoplay réussi
                 startPlayback();
-            }).catch(error => {
-                // Lecture refusée (le navigateur bloque), on réessaie après un court délai
-                // On laisse le bouton PLAY comme seule interaction possible.
+            }).catch(() => {
+                // Autoplay refusé, autorise le bouton PLAY pour l'interaction utilisateur
                 playBtn.disabled = false;
                 playBtn.style.opacity = '1';
-                console.log('Lecture bloquée. Utilisateur doit interagir.');
             });
-        }
-        
-        // Tente de jouer dès que la page est chargée
-        document.addEventListener('DOMContentLoaded', () => {
-             // Rendre le bouton PLAY disponible au cas où l'autoplay échoue
-            playBtn.disabled = false;
-            playBtn.style.opacity = '1';
-            
-            attemptPlay();
         });
 
 
@@ -193,8 +176,6 @@
         // Écouteur PAUSE : Gère l'arrêt et la réactivation de Play
         pauseBtn.addEventListener('click', ()=>{ 
             audio.pause(); 
-            
-            // Rendre le bouton Play utilisable après une pause
             playBtn.disabled = false; 
             playBtn.style.opacity = '1'; 
         });
