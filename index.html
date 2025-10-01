@@ -96,14 +96,13 @@
         /* --- Gestion du Diaporama (Slideshow) --- */
         const slides = document.querySelectorAll('.slide');
         let currentSlide = 0;
+        let slideInterval = null; // Déclaration à null pour empêcher l'autoplay initial
         
         function nextSlide() {
             slides[currentSlide].classList.remove('active');
             currentSlide = (currentSlide + 1) % slides.length;
             slides[currentSlide].classList.add('active');
         }
-
-        let slideInterval = setInterval(nextSlide, 8000); 
 
         /* --- Messages synchronisés à la musique --- */
         const messages = [
@@ -133,16 +132,19 @@
             return m+':'+sec;
         }
         
+        // Fonction principale de lancement (musique, texte, diaporama)
         function startPlayback() {
-            // Démarre la lecture et débloque le son
+            // Démarrer la lecture et débloquer le son
             audio.play(); 
             audio.muted = false; 
             
+            // Lancer le diaporama si ce n'est pas déjà fait
+            if (slideInterval === null) {
+                slideInterval = setInterval(nextSlide, 8000);
+            }
+
             // Lancer le premier message
             if (showLaunched === false) {
-                clearInterval(slideInterval);
-                slideInterval = setInterval(nextSlide, 8000);
-                
                 if(messages.length > 0) {
                     shownIndex = 0;
                     typeText(messages[0].text);
@@ -158,8 +160,11 @@
 
         // Tente de jouer dès que la page est chargée et rend le bouton disponible si l'autoplay échoue
         document.addEventListener('DOMContentLoaded', () => {
+             // Initialiser la première slide pour qu'elle soit visible
+            slides[0].classList.add('active');
+
             audio.play().then(() => {
-                // Autoplay réussi
+                // Autoplay réussi (rare sur mobile)
                 startPlayback();
             }).catch(() => {
                 // Autoplay refusé, autorise le bouton PLAY pour l'interaction utilisateur
@@ -173,11 +178,13 @@
         playBtn.addEventListener('click', startPlayback);
 
 
-        // Écouteur PAUSE : Gère l'arrêt et la réactivation de Play
+        // Écouteur PAUSE : Gère l'arrêt
         pauseBtn.addEventListener('click', ()=>{ 
             audio.pause(); 
             playBtn.disabled = false; 
             playBtn.style.opacity = '1'; 
+            if (slideInterval) clearInterval(slideInterval); // Arrête le diaporama aussi
+            slideInterval = null;
         });
 
         // mise à jour progress et messages
