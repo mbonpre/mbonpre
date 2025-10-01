@@ -10,15 +10,18 @@
         html,body{height:100%;margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial}
         .wrap{position:relative;height:100vh;overflow:hidden;background:#000}
         
-        /* Image de fond unique (Simplifiée) */
-        .single-background{
+        /* Conteneur du Diaporama */
+        .slide-container{position:absolute;inset:0}
+        .slide{
             position:absolute;
             inset:0;
-            background-image: url('im/photo1.jpg'); /* Chemin im/ minuscule */
             background-size:cover;
             background-position:center;
-            opacity:1;
-            transition:opacity 0.5s ease;
+            opacity:0; /* Caché par défaut */
+            transition:opacity 1s ease;
+        }
+        .slide.active{
+            opacity:1; /* La slide active est visible */
         }
 
         /* calque sombre + contenu */
@@ -27,7 +30,8 @@
 
         .top-row{display:flex;align-items:center;gap:12px}
         .avatar{width:64px;height:64px;border-radius:50%;overflow:hidden;flex:0 0 64px;border:2px solid rgba(255,255,255,0.12)}
-        .avatar img{width:100%;height:100%;object-fit:cover}
+        /* L'avatar utilise photo1.jpg */
+        .avatar img{width:100%;height:100%;object-fit:cover} 
         .title{font-size:18px;margin:0}
         .subtitle{font-size:13px;opacity:0.85}
 
@@ -44,9 +48,6 @@
         /* responsive */
         @media (max-width:600px){.card{padding:18px}.message-box{font-size:17px}}
 
-        /* subtle cue for QR printing area */
-        .qr-note{margin-top:14px;font-size:13px;opacity:0.9}
-
         /* fade in animation for card */
         .card{transform:translateY(6px);opacity:0;animation:pop 0.6s forwards 0.4s}
         @keyframes pop{to{transform:none;opacity:1}}
@@ -54,7 +55,12 @@
 </head>
 <body>
     <div class="wrap">
-        <div class="single-background" id="background"></div>
+        
+        <div class="slide-container" id="slideshow">
+            <div class="slide active" style="background-image: url('im/photo1.jpg');"></div> 
+            <div class="slide" style="background-image: url('im/photo2.jpg');"></div>
+            <div class="slide" style="background-image: url('im/photo3.jpg');"></div>
+        </div>
 
         <div class="overlay">
             <div class="card">
@@ -77,7 +83,9 @@
                     <div class="small" id="time">0:00</div>
                 </div>
 
-                <div class="small qr-note"> Tu es ma vie 😘.</div>
+                <div class="small qr-note" id="qrNote">
+                    P.S. : Le secret de l'amour est maintenant gravé pour toujours !
+                </div>
 
             </div>
         </div>
@@ -86,6 +94,19 @@
     </div>
 
     <script>
+        /* --- Gestion du Diaporama (Slideshow) --- */
+        const slides = document.querySelectorAll('.slide');
+        let currentSlide = 0;
+        
+        function nextSlide() {
+            slides[currentSlide].classList.remove('active');
+            currentSlide = (currentSlide + 1) % slides.length;
+            slides[currentSlide].classList.add('active');
+        }
+
+        // Le diaporama tourne toutes les 8 secondes
+        let slideInterval = setInterval(nextSlide, 8000); 
+
         /* --- Messages synchronisés à la musique --- */
         const messages = [
             {at: 0, text: "Mon amour, cette petite surprise est entièrement dédiée à toi."},
@@ -104,86 +125,7 @@
         const cursor = document.getElementById('cursor');
         const fill = document.getElementById('fill');
         const timeEl = document.getElementById('time');
-        const backgroundEl = document.getElementById('background'); 
 
         let shownIndex = -1; 
         let typingTimer = null;
-        let showLaunched = false; 
-
-        function formatTime(s){
-            const m = Math.floor(s/60); const sec = Math.floor(s%60).toString().padStart(2,'0');
-            return m+':'+sec;
-        }
-
-        // Écouteur PLAY : Gère le lancement initial
-        playBtn.addEventListener('click', ()=>{ 
-            audio.play(); 
-
-            // Lance le premier message UNIQUEMENT la première fois
-            if (showLaunched === false) {
-                // Afficher immédiatement le premier message (at: 0)
-                if(messages.length > 0) {
-                    shownIndex = 0;
-                    typeText(messages[0].text);
-                }
-                showLaunched = true;
-            } 
-            
-            // Désactiver le bouton Play une fois que la musique joue
-            playBtn.disabled = true; 
-            playBtn.style.opacity = '0.5'; 
-            
-        });
-
-        // Écouteur PAUSE : Gère l'arrêt et la réactivation de Play
-        pauseBtn.addEventListener('click', ()=>{ 
-            audio.pause(); 
-            
-            // Rendre le bouton Play utilisable après une pause
-            playBtn.disabled = false; 
-            playBtn.style.opacity = '1'; 
-        });
-
-        // mise à jour progress et messages
-        audio.addEventListener('timeupdate', ()=>{
-            const pct = (audio.currentTime / audio.duration) || 0;
-            fill.style.width = (pct*100) + '%';
-            timeEl.textContent = formatTime(audio.currentTime);
-
-            // check messages
-            for(let i=0;i<messages.length;i++){
-                if(audio.currentTime >= messages[i].at && shownIndex < i){
-                    shownIndex = i;
-                    typeText(messages[i].text);
-                }
-            }
-        });
-
-        audio.addEventListener('ended', ()=>{ cursor.style.opacity='0'; });
-
-        // typing effect
-        function typeText(text){
-            if(typingTimer) clearInterval(typingTimer);
-            typingEl.textContent = '';
-            cursor.style.opacity = '1';
-            let idx = 0;
-            typingTimer = setInterval(()=>{
-                typingEl.textContent += text.charAt(idx);
-                idx++;
-                if(idx >= text.length){
-                    clearInterval(typingTimer);
-                    typingTimer = null;
-                    let blink = 0;
-                    const b = setInterval(()=>{ cursor.style.visibility = (cursor.style.visibility === 'hidden' ? 'visible' : 'hidden'); if(++blink>6){ clearInterval(b); cursor.style.visibility='visible'; } }, 300);
-                }
-            }, 45);
-        }
-        
-        // Initialiser l'affichage de l'image (pour s'assurer qu'elle est visible au chargement)
-        document.addEventListener('DOMContentLoaded', () => {
-            backgroundEl.style.opacity = '1';
-        });
-
-    </script>
-</body>
-</html>
+        let showLaunched = false
