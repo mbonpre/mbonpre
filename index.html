@@ -90,7 +90,7 @@
             </div>
         </div>
 
-        <audio id="bgAudio" preload="none" src="audio/song.mp3"></audio>
+        <audio id="bgAudio" preload="auto" src="audio/song.mp3" muted></audio> 
     </div>
 
     <script>
@@ -128,4 +128,112 @@
 
         let shownIndex = -1; 
         let typingTimer = null;
-        let showLaunched = false
+        let showLaunched = false; 
+        let attemptPlayCount = 0; // Compteur pour les tentatives de lecture
+
+        function formatTime(s){
+            const m = Math.floor(s/60); const sec = Math.floor(s%60).toString().padStart(2,'0');
+            return m+':'+sec;
+        }
+        
+        // Fonction pour démarrer la lecture et gérer l'interface
+        function startPlayback() {
+             // Démarrer la musique (après que le navigateur le permette)
+            audio.play(); 
+            audio.muted = false; // Démute si la lecture est autorisée
+            
+            // Lancer le premier message
+            if (showLaunched === false) {
+                clearInterval(slideInterval);
+                slideInterval = setInterval(nextSlide, 8000);
+                
+                if(messages.length > 0) {
+                    shownIndex = 0;
+                    typeText(messages[0].text);
+                }
+                showLaunched = true;
+            } 
+            
+            // Mettre à jour les boutons
+            playBtn.disabled = true; 
+            playBtn.style.opacity = '0.5'; 
+            
+        }
+
+        // Tente de démarrer l'audio au chargement (cela réussit souvent si l'audio est muet au départ)
+        function attemptPlay() {
+            if (attemptPlayCount > 5) return; // Arrêter après 5 tentatives
+            attemptPlayCount++;
+            audio.play().then(() => {
+                // Lecture réussie, le navigateur a accepté
+                startPlayback();
+            }).catch(error => {
+                // Lecture refusée (le navigateur bloque), on réessaie après un court délai
+                // On laisse le bouton PLAY comme seule interaction possible.
+                playBtn.disabled = false;
+                playBtn.style.opacity = '1';
+                console.log('Lecture bloquée. Utilisateur doit interagir.');
+            });
+        }
+        
+        // Tente de jouer dès que la page est chargée
+        document.addEventListener('DOMContentLoaded', () => {
+             // Rendre le bouton PLAY disponible au cas où l'autoplay échoue
+            playBtn.disabled = false;
+            playBtn.style.opacity = '1';
+            
+            attemptPlay();
+        });
+
+
+        // Écouteur PLAY : Gère le lancement lorsque l'utilisateur clique
+        playBtn.addEventListener('click', startPlayback);
+
+
+        // Écouteur PAUSE : Gère l'arrêt et la réactivation de Play
+        pauseBtn.addEventListener('click', ()=>{ 
+            audio.pause(); 
+            
+            // Rendre le bouton Play utilisable après une pause
+            playBtn.disabled = false; 
+            playBtn.style.opacity = '1'; 
+        });
+
+        // mise à jour progress et messages
+        audio.addEventListener('timeupdate', ()=>{
+            const pct = (audio.currentTime / audio.duration) || 0;
+            fill.style.width = (pct*100) + '%';
+            timeEl.textContent = formatTime(audio.currentTime);
+
+            // check messages
+            for(let i=0;i<messages.length;i++){
+                if(audio.currentTime >= messages[i].at && shownIndex < i){
+                    shownIndex = i;
+                    typeText(messages[i].text);
+                }
+            }
+        });
+
+        audio.addEventListener('ended', ()=>{ cursor.style.opacity='0'; });
+
+        // typing effect
+        function typeText(text){
+            if(typingTimer) clearInterval(typingTimer);
+            typingEl.textContent = '';
+            cursor.style.opacity = '1';
+            let idx = 0;
+            typingTimer = setInterval(()=>{
+                typingEl.textContent += text.charAt(idx);
+                idx++;
+                if(idx >= text.length){
+                    clearInterval(typingTimer);
+                    typingTimer = null;
+                    let blink = 0;
+                    const b = setInterval(()=>{ cursor.style.visibility = (cursor.style.visibility === 'hidden' ? 'visible' : 'hidden'); if(++blink>6){ clearInterval(b); cursor.style.visibility='visible'; } }, 300);
+                }
+            }, 45);
+        }
+        
+    </script>
+</body>
+</html>
