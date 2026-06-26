@@ -1,587 +1,592 @@
 <!DOCTYPE html>
 <html lang="fr">
-
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Expérience Musicale</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400&display=swap');
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Expérience Musicale</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400&display=swap');
 
-        *,
-        *::before,
-        *::after {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-        :root {
-            --gold: #C9A84C;
-            --gold-light: #E8C97A;
-            --white: #FAFAF8;
-            --black: #0A0A0A;
-            --transition-speed: 1.4s;
-            --msg-duration: 3500;
-            /* ms — modifiable */
-        }
+    :root {
+      --gold: #C9A84C;
+      --gold-light: #E8C97A;
+      --white: #FAFAF8;
+      --black: #0A0A0A;
+      --transition-speed: 1.4s;
+      --msg-duration: 3500; /* ms — modifiable */
+    }
 
-        html,
-        body {
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            font-family: 'Inter', sans-serif;
-            background: var(--black);
-            color: var(--white);
-        }
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      font-family: 'Inter', sans-serif;
+      background: var(--black);
+      color: var(--white);
+    }
 
-        /* ── SLIDESHOW ── */
-        #slideshow {
-            position: fixed;
-            inset: 0;
-            z-index: 0;
-        }
+    /* ── SLIDESHOW ── */
+    #slideshow {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+    }
 
-        .slide {
-            position: absolute;
-            inset: 0;
-            background-size: cover;
-            background-position: center;
-            opacity: 0;
-            transition: opacity var(--transition-speed) ease-in-out;
-        }
+    .slide {
+      position: absolute;
+      inset: 0;
+      background-size: cover;
+      background-position: center;
+      opacity: 0;
+      transition: opacity var(--transition-speed) ease-in-out;
+    }
 
-        /* Photos par défaut — remplacez src par vos propres images */
-        .slide:nth-child(1) {
-            background-image: url('https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=1600&q=80');
-        }
+    /* Photos par défaut — remplacez src par vos propres images */
+    .slide:nth-child(1) { background-image: url('https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=1600&q=80'); }
+    .slide:nth-child(2) { background-image: url('https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1600&q=80'); }
+    .slide:nth-child(3) { background-image: url('https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=1600&q=80'); }
+    .slide:nth-child(4) { background-image: url('https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1600&q=80'); }
 
-        .slide:nth-child(2) {
-            background-image: url('https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1600&q=80');
-        }
+    .slide.active { opacity: 1; }
 
-        .slide:nth-child(3) {
-            background-image: url('https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=1600&q=80');
-        }
+    /* Overlay sombre pour lisibilité */
+    #slideshow::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        to bottom,
+        rgba(0,0,0,0.55) 0%,
+        rgba(0,0,0,0.35) 50%,
+        rgba(0,0,0,0.65) 100%
+      );
+    }
 
-        .slide:nth-child(4) {
-            background-image: url('https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1600&q=80');
-        }
+    /* ── AUDIO (caché) ── */
+    /* Remplacez le src par votre fichier audio */
+    /* <audio id="music" src="votre-chanson.mp3" preload="auto"></audio> */
 
-        .slide.active {
-            opacity: 1;
-        }
+    /* ── ÉCRAN D'ACCUEIL ── */
+    #landing {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2rem;
+      transition: opacity 1s ease, visibility 1s ease;
+    }
 
-        /* Overlay sombre pour lisibilité */
-        #slideshow::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(to bottom,
-                    rgba(0, 0, 0, 0.55) 0%,
-                    rgba(0, 0, 0, 0.35) 50%,
-                    rgba(0, 0, 0, 0.65) 100%);
-        }
+    #landing.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
 
-        /* ── AUDIO (caché) ── */
-        /* Remplacez le src par votre fichier audio */
-        /* <audio id="music" src="votre-chanson.mp3" preload="auto"></audio> */
+    #landing h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2rem, 5vw, 4rem);
+      font-weight: 400;
+      letter-spacing: 0.08em;
+      text-align: center;
+      color: var(--white);
+      text-shadow: 0 2px 24px rgba(0,0,0,0.7);
+    }
 
-        /* ── ÉCRAN D'ACCUEIL ── */
-        #landing {
-            position: fixed;
-            inset: 0;
-            z-index: 10;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 2rem;
-            transition: opacity 1s ease, visibility 1s ease;
-        }
+    #landing h1 em {
+      font-style: italic;
+      color: var(--gold-light);
+    }
 
-        #landing.hidden {
-            opacity: 0;
-            visibility: hidden;
-            pointer-events: none;
-        }
+    #landing p.subtitle {
+      font-size: clamp(0.85rem, 2vw, 1.05rem);
+      font-weight: 300;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.6);
+    }
 
-        #landing h1 {
-            font-family: 'Playfair Display', serif;
-            font-size: clamp(2rem, 5vw, 4rem);
-            font-weight: 400;
-            letter-spacing: 0.08em;
-            text-align: center;
-            color: var(--white);
-            text-shadow: 0 2px 24px rgba(0, 0, 0, 0.7);
-        }
+    /* Bouton Play */
+    #btn-play {
+      margin-top: 1rem;
+      width: 90px; height: 90px;
+      border-radius: 50%;
+      border: 2px solid var(--gold);
+      background: rgba(201,168,76,0.12);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, transform 0.3s, box-shadow 0.3s;
+      backdrop-filter: blur(4px);
+    }
 
-        #landing h1 em {
-            font-style: italic;
-            color: var(--gold-light);
-        }
+    #btn-play:hover {
+      background: rgba(201,168,76,0.28);
+      transform: scale(1.08);
+      box-shadow: 0 0 32px rgba(201,168,76,0.4);
+    }
 
-        #landing p.subtitle {
-            font-size: clamp(0.85rem, 2vw, 1.05rem);
-            font-weight: 300;
-            letter-spacing: 0.18em;
-            text-transform: uppercase;
-            color: rgba(255, 255, 255, 0.6);
-        }
+    #btn-play svg {
+      width: 36px; height: 36px;
+      fill: var(--gold-light);
+      margin-left: 4px; /* centrage optique */
+    }
 
-        /* Bouton Play */
-        #btn-play {
-            margin-top: 1rem;
-            width: 90px;
-            height: 90px;
-            border-radius: 50%;
-            border: 2px solid var(--gold);
-            background: rgba(201, 168, 76, 0.12);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background 0.3s, transform 0.3s, box-shadow 0.3s;
-            backdrop-filter: blur(4px);
-        }
+    /* ── MESSAGES ── */
+    #message-display {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
 
-        #btn-play:hover {
-            background: rgba(201, 168, 76, 0.28);
-            transform: scale(1.08);
-            box-shadow: 0 0 32px rgba(201, 168, 76, 0.4);
-        }
+    .message-box {
+      text-align: center;
+      padding: 0 1.5rem;
+      opacity: 0;
+      transform: translateY(18px);
+      transition: opacity 0.8s ease, transform 0.8s ease;
+      max-width: 780px;
+    }
 
-        #btn-play svg {
-            width: 36px;
-            height: 36px;
-            fill: var(--gold-light);
-            margin-left: 4px;
-            /* centrage optique */
-        }
+    .message-box.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
 
-        /* ── MESSAGES ── */
-        #message-display {
-            position: fixed;
-            inset: 0;
-            z-index: 20;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            pointer-events: none;
-        }
+    .message-box.fade-out {
+      opacity: 0;
+      transform: translateY(-14px);
+    }
 
-        .message-box {
-            text-align: center;
-            padding: 0 1.5rem;
-            opacity: 0;
-            transform: translateY(18px);
-            transition: opacity 0.8s ease, transform 0.8s ease;
-            max-width: 780px;
-        }
+    .message-box .msg-text {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(1.4rem, 4vw, 3rem);
+      font-style: italic;
+      font-weight: 400;
+      color: var(--white);
+      text-shadow: 0 2px 30px rgba(0,0,0,0.8);
+      line-height: 1.4;
+    }
 
-        .message-box.visible {
-            opacity: 1;
-            transform: translateY(0);
-        }
+    .message-box .msg-sub {
+      margin-top: 0.6rem;
+      font-size: clamp(0.75rem, 1.6vw, 0.95rem);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--gold-light);
+      font-weight: 300;
+    }
 
-        .message-box.fade-out {
-            opacity: 0;
-            transform: translateY(-14px);
-        }
+    /* ── BARRE MUSICALE EN BAS ── */
+    #player-bar {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      z-index: 30;
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 100%);
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.8s ease;
+    }
 
-        .message-box .msg-text {
-            font-family: 'Playfair Display', serif;
-            font-size: clamp(1.4rem, 4vw, 3rem);
-            font-style: italic;
-            font-weight: 400;
-            color: var(--white);
-            text-shadow: 0 2px 30px rgba(0, 0, 0, 0.8);
-            line-height: 1.4;
-        }
+    #player-bar.visible {
+      opacity: 1;
+      visibility: visible;
+    }
 
-        .message-box .msg-sub {
-            margin-top: 0.6rem;
-            font-size: clamp(0.75rem, 1.6vw, 0.95rem);
-            letter-spacing: 0.2em;
-            text-transform: uppercase;
-            color: var(--gold-light);
-            font-weight: 300;
-        }
+    #player-bar .song-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
 
-        /* ── BARRE MUSICALE EN BAS ── */
-        #player-bar {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            z-index: 30;
-            padding: 1rem 2rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, transparent 100%);
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.8s ease;
-        }
+    #player-bar .song-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1rem;
+      color: var(--white);
+    }
 
-        #player-bar.visible {
-            opacity: 1;
-            visibility: visible;
-        }
+    #player-bar .song-artist {
+      font-size: 0.75rem;
+      letter-spacing: 0.12em;
+      color: var(--gold-light);
+      text-transform: uppercase;
+    }
 
-        #player-bar .song-info {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-        }
+    /* Barre de progression */
+    #progress-bar {
+      flex: 1;
+      margin: 0 2rem;
+      height: 3px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 2px;
+      position: relative;
+      cursor: pointer;
+    }
 
-        #player-bar .song-title {
-            font-family: 'Playfair Display', serif;
-            font-size: 1rem;
-            color: var(--white);
-        }
+    #progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(to right, var(--gold), var(--gold-light));
+      border-radius: 2px;
+      transition: width 0.5s linear;
+    }
 
-        #player-bar .song-artist {
-            font-size: 0.75rem;
-            letter-spacing: 0.12em;
-            color: var(--gold-light);
-            text-transform: uppercase;
-        }
+    /* Bouton pause/play secondaire */
+    #btn-toggle {
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      border: 1.5px solid rgba(201,168,76,0.5);
+      background: transparent;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color 0.2s, background 0.2s;
+    }
 
-        /* Barre de progression */
-        #progress-bar {
-            flex: 1;
-            margin: 0 2rem;
-            height: 3px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 2px;
-            position: relative;
-            cursor: pointer;
-        }
+    #btn-toggle:hover {
+      border-color: var(--gold);
+      background: rgba(201,168,76,0.15);
+    }
 
-        #progress-fill {
-            height: 100%;
-            width: 0%;
-            background: linear-gradient(to right, var(--gold), var(--gold-light));
-            border-radius: 2px;
-            transition: width 0.5s linear;
-        }
+    #btn-toggle svg { width: 18px; height: 18px; fill: var(--gold-light); }
+    #btn-toggle .icon-pause { display: none; }
 
-        /* Bouton pause/play secondaire */
-        #btn-toggle {
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            border: 1.5px solid rgba(201, 168, 76, 0.5);
-            background: transparent;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: border-color 0.2s, background 0.2s;
-        }
+    /* ── VIGNETTE COINS ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.55) 100%);
+      pointer-events: none;
+    }
 
-        #btn-toggle:hover {
-            border-color: var(--gold);
-            background: rgba(201, 168, 76, 0.15);
-        }
+    /* ── INDICATEUR SLIDE ── */
+    #dots {
+      position: fixed;
+      right: 1.5rem;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 25;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
 
-        #btn-toggle svg {
-            width: 18px;
-            height: 18px;
-            fill: var(--gold-light);
-        }
+    .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.3);
+      transition: background 0.4s, transform 0.4s;
+    }
 
-        #btn-toggle .icon-pause {
-            display: none;
-        }
+    .dot.active {
+      background: var(--gold-light);
+      transform: scale(1.4);
+    }
 
-        /* ── VIGNETTE COINS ── */
-        body::before {
-            content: '';
-            position: fixed;
-            inset: 0;
-            z-index: 1;
-            background: radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.55) 100%);
-            pointer-events: none;
-        }
-
-        /* ── INDICATEUR SLIDE ── */
-        #dots {
-            position: fixed;
-            right: 1.5rem;
-            top: 50%;
-            transform: translateY(-50%);
-            z-index: 25;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.3);
-            transition: background 0.4s, transform 0.4s;
-        }
-
-        .dot.active {
-            background: var(--gold-light);
-            transform: scale(1.4);
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-
-            .slide,
-            .message-box,
-            #landing {
-                transition: none !important;
-            }
-        }
-    </style>
+    @media (prefers-reduced-motion: reduce) {
+      .slide, .message-box, #landing { transition: none !important; }
+    }
+  </style>
 </head>
-
 <body>
 
-    <!-- AUDIO : remplacez src par votre fichier -->
-    <audio id="music" preload="auto">
-        <source src="votre-chanson.mp3" type="audio/mpeg">
-        <!-- Fallback : <source src="votre-chanson.ogg" type="audio/ogg"> -->
-    </audio>
+  <!-- AUDIO : remplacez src par votre fichier -->
+  <audio id="music" preload="auto">
+    <source src="votre-chanson.mp3" type="audio/mpeg">
+    <!-- Fallback : <source src="votre-chanson.ogg" type="audio/ogg"> -->
+  </audio>
 
-    <!-- SLIDESHOW -->
-    <div id="slideshow">
-        <div class="slide active"></div>
-        <div class="slide"></div>
-        <div class="slide"></div>
-        <div class="slide"></div>
+  <!-- SLIDESHOW -->
+  <div id="slideshow">
+    <div class="slide active"></div>
+    <div class="slide"></div>
+    <div class="slide"></div>
+    <div class="slide"></div>
+  </div>
+
+  <!-- INDICATEURS DOTS -->
+  <div id="dots">
+    <div class="dot active"></div>
+    <div class="dot"></div>
+    <div class="dot"></div>
+    <div class="dot"></div>
+  </div>
+
+  <!-- ÉCRAN D'ACCUEIL -->
+  <div id="landing">
+    <h1>Une <em>Expérience</em> Musicale</h1>
+    <p class="subtitle">Appuyez pour commencer</p>
+    <button id="btn-play" aria-label="Lancer la musique">
+      <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+    </button>
+  </div>
+
+  <!-- ZONE D'AFFICHAGE DES MESSAGES -->
+  <div id="message-display">
+    <div class="message-box" id="msg-box">
+      <p class="msg-text" id="msg-text"></p>
+      <p class="msg-sub" id="msg-sub"></p>
     </div>
+  </div>
 
-    <!-- INDICATEURS DOTS -->
-    <div id="dots">
-        <div class="dot active"></div>
-        <div class="dot"></div>
-        <div class="dot"></div>
-        <div class="dot"></div>
+  <!-- BARRE MUSICALE -->
+  <div id="player-bar">
+    <div class="song-info">
+      <span class="song-title" id="song-title">Titre de la chanson</span>
+      <span class="song-artist" id="song-artist">Nom de l'artiste</span>
     </div>
-
-    <!-- ÉCRAN D'ACCUEIL -->
-    <div id="landing">
-        <h1>Une <em>Expérience</em> Musicale</h1>
-        <p class="subtitle">Appuyez pour commencer</p>
-        <button id="btn-play" aria-label="Lancer la musique">
-            <svg viewBox="0 0 24 24">
-                <path d="M8 5v14l11-7z" />
-            </svg>
-        </button>
+    <div id="progress-bar">
+      <div id="progress-fill"></div>
     </div>
+    <button id="btn-toggle" aria-label="Pause / Lecture">
+      <svg class="icon-pause" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+      <svg class="icon-play"  viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+    </button>
+  </div>
 
-    <!-- ZONE D'AFFICHAGE DES MESSAGES -->
-    <div id="message-display">
-        <div class="message-box" id="msg-box">
-            <p class="msg-text" id="msg-text"></p>
-            <p class="msg-sub" id="msg-sub"></p>
-        </div>
-    </div>
+<script>
+  /* ═══════════════════════════════════════════════
+     ★  CONFIGURATION — modifiez ici vos contenus ★
+     ═══════════════════════════════════════════════ */
 
-    <!-- BARRE MUSICALE -->
-    <div id="player-bar">
-        <div class="song-info">
-            <span class="song-title" id="song-title">Titre de la chanson</span>
-            <span class="song-artist" id="song-artist">Nom de l'artiste</span>
-        </div>
-        <div id="progress-bar">
-            <div id="progress-fill"></div>
-        </div>
-        <button id="btn-toggle" aria-label="Pause / Lecture">
-            <svg class="icon-pause" viewBox="0 0 24 24">
-                <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
-            </svg>
-            <svg class="icon-play" viewBox="0 0 24 24">
-                <path d="M8 5v14l11-7z" />
-            </svg>
-        </button>
-    </div>
+  const CONFIG = {
+    // Infos de la chanson (affichées dans la barre du bas)
+    songTitle:  "Titre de votre chanson",
+    songArtist: "Nom de l'artiste",
 
-    <script>
-        /* ═══════════════════════════════════════════════
-           ★  CONFIGURATION — modifiez ici vos contenus ★
-           ═══════════════════════════════════════════════ */
+    // Messages avec leur sous-texte et le moment d'apparition (en secondes)
+    messages: [
+      { time: 2,   text: "Bienvenue dans ce moment...",           sub: "" },
+      { time: 8,   text: "Laissez la musique vous emporter",      sub: "Fermez les yeux" },
+      { time: 16,  text: "Chaque note raconte une histoire",       sub: "" },
+      { time: 24,  text: "Celle-ci est pour vous",                 sub: "♥" },
+      { time: 32,  text: "Merci d'être là",                        sub: "Profitez de chaque instant" },
+      { time: 45,  text: "La vie est belle quand on l'écoute",     sub: "" },
+      { time: 58,  text: "Ce souvenir vous appartient désormais",  sub: "Pour toujours" },
+    ],
 
-        const CONFIG = {
-            // Infos de la chanson (affichées dans la barre du bas)
-            songTitle: "Titre de votre chanson",
-            songArtist: "Nom de l'artiste",
+    // Durée d'affichage de chaque message (ms)
+    messageDuration: 3800,
 
-            // Messages avec leur sous-texte et le moment d'apparition (en secondes)
-            messages: [
-                { time: 2, text: "Bienvenue dans ce moment...", sub: "" },
-                { time: 8, text: "Laissez la musique vous emporter", sub: "Fermez les yeux" },
-                { time: 16, text: "Chaque note raconte une histoire", sub: "" },
-                { time: 24, text: "Celle-ci est pour vous", sub: "♥" },
-                { time: 32, text: "Merci d'être là", sub: "Profitez de chaque instant" },
-                { time: 45, text: "La vie est belle quand on l'écoute", sub: "" },
-                { time: 58, text: "Ce souvenir vous appartient désormais", sub: "Pour toujours" },
-            ],
+    // Intervalle entre chaque photo (ms)
+    slideInterval: 6000,
 
-            // Durée d'affichage de chaque message (ms)
-            messageDuration: 3800,
+    // Photos — remplacez les URLs par vos propres chemins (ex: "photo1.jpg")
+    // Les photos sont déjà définies en CSS (.slide:nth-child), mais vous pouvez
+    // les surcharger ici dynamiquement :
+    photos: [
+      // "photo1.jpg",
+      // "photo2.jpg",
+      // "photo3.jpg",
+      // "photo4.jpg",
+    ]
+  };
 
-            // Intervalle entre chaque photo (ms)
-            slideInterval: 6000,
+  /* ═══════════════════════════════════════════════
+     CODE — ne pas modifier sauf si vous savez
+     ═══════════════════════════════════════════════ */
 
-            // Photos — remplacez les URLs par vos propres chemins (ex: "photo1.jpg")
-            // Les photos sont déjà définies en CSS (.slide:nth-child), mais vous pouvez
-            // les surcharger ici dynamiquement :
-            photos: [
-                // "photo1.jpg",
-                // "photo2.jpg",
-                // "photo3.jpg",
-                // "photo4.jpg",
-            ]
-        };
+  const music      = document.getElementById('music');
+  const landing    = document.getElementById('landing');
+  const btnPlay    = document.getElementById('btn-play');
+  const btnToggle  = document.getElementById('btn-toggle');
+  const playerBar  = document.getElementById('player-bar');
+  const msgBox     = document.getElementById('msg-box');
+  const msgText    = document.getElementById('msg-text');
+  const msgSub     = document.getElementById('msg-sub');
+  const progressFill = document.getElementById('progress-fill');
+  const slides     = document.querySelectorAll('.slide');
+  const dots       = document.querySelectorAll('.dot');
+  const iconPause  = btnToggle.querySelector('.icon-pause');
+  const iconPlay   = btnToggle.querySelector('.icon-play');
 
-        /* ═══════════════════════════════════════════════
-           CODE — ne pas modifier sauf si vous savez
-           ═══════════════════════════════════════════════ */
+  // Remplir infos chanson
+  document.getElementById('song-title').textContent  = CONFIG.songTitle;
+  document.getElementById('song-artist').textContent = CONFIG.songArtist;
 
-        const music = document.getElementById('music');
-        const landing = document.getElementById('landing');
-        const btnPlay = document.getElementById('btn-play');
-        const btnToggle = document.getElementById('btn-toggle');
-        const playerBar = document.getElementById('player-bar');
-        const msgBox = document.getElementById('msg-box');
-        const msgText = document.getElementById('msg-text');
-        const msgSub = document.getElementById('msg-sub');
-        const progressFill = document.getElementById('progress-fill');
-        const slides = document.querySelectorAll('.slide');
-        const dots = document.querySelectorAll('.dot');
-        const iconPause = btnToggle.querySelector('.icon-pause');
-        const iconPlay = btnToggle.querySelector('.icon-play');
+  // Surcharge des photos si fournies
+  if (CONFIG.photos.length === 4) {
+    CONFIG.photos.forEach((src, i) => {
+      slides[i].style.backgroundImage = `url('${src}')`;
+    });
+  }
 
-        // Remplir infos chanson
-        document.getElementById('song-title').textContent = CONFIG.songTitle;
-        document.getElementById('song-artist').textContent = CONFIG.songArtist;
+  /* ── Slideshow ── */
+  let currentSlide = 0;
+  let slideTimer   = null;
+  let slideElapsed = 0;       // temps écoulé sur la slide courante (ms)
+  let slideStart   = null;    // timestamp du début de la slide courante
 
-        // Surcharge des photos si fournies
-        if (CONFIG.photos.length === 4) {
-            CONFIG.photos.forEach((src, i) => {
-                slides[i].style.backgroundImage = `url('${src}')`;
-            });
-        }
+  function nextSlide() {
+    slides[currentSlide].classList.remove('active');
+    dots[currentSlide].classList.remove('active');
+    currentSlide = (currentSlide + 1) % slides.length;
+    slides[currentSlide].classList.add('active');
+    dots[currentSlide].classList.add('active');
+    slideStart   = Date.now();
+    slideElapsed = 0;
+  }
 
-        /* ── Slideshow ── */
-        let currentSlide = 0;
+  function startSlideshow(remaining) {
+    const firstInterval = remaining !== undefined ? remaining : CONFIG.slideInterval;
+    slideStart = Date.now();
+    slideTimer = setTimeout(function tick() {
+      nextSlide();
+      slideTimer = setInterval(nextSlide, CONFIG.slideInterval);
+    }, firstInterval);
+  }
 
-        function nextSlide() {
-            slides[currentSlide].classList.remove('active');
-            dots[currentSlide].classList.remove('active');
-            currentSlide = (currentSlide + 1) % slides.length;
-            slides[currentSlide].classList.add('active');
-            dots[currentSlide].classList.add('active');
-        }
+  function pauseSlideshow() {
+    slideElapsed = Date.now() - (slideStart || Date.now());
+    clearTimeout(slideTimer);
+    clearInterval(slideTimer);
+    slideTimer = null;
+  }
 
-        let slideTimer = null;
+  function resumeSlideshow() {
+    const remaining = Math.max(0, CONFIG.slideInterval - slideElapsed);
+    startSlideshow(remaining);
+  }
 
-        function startSlideshow() {
-            slideTimer = setInterval(nextSlide, CONFIG.slideInterval);
-        }
+  /* ── Messages ── */
+  let msgTimers    = [];
+  let isPaused     = false;
+  let pauseTime    = 0;       // moment (music.currentTime) où on a pausé
 
-        /* ── Messages ── */
-        let msgTimers = [];
+  // Sauvegarde des messages restants au moment de la pause
+  let pendingMessages = [];
 
-        function showMessage(text, sub) {
-            // Effacer message en cours
-            msgBox.classList.remove('visible');
-            msgBox.classList.add('fade-out');
+  function showMessage(text, sub) {
+    msgBox.classList.remove('visible', 'fade-out');
+    void msgBox.offsetWidth; // reflow
 
-            setTimeout(() => {
-                msgText.textContent = text;
-                msgSub.textContent = sub || '';
-                msgBox.classList.remove('fade-out');
-                msgBox.classList.add('visible');
+    msgText.textContent = text;
+    msgSub.textContent  = sub || '';
+    msgBox.classList.add('visible');
 
-                // Disparaître après la durée configurée
-                setTimeout(() => {
-                    msgBox.classList.remove('visible');
-                    msgBox.classList.add('fade-out');
-                }, CONFIG.messageDuration);
-            }, 400);
-        }
+    const hideTimer = setTimeout(() => {
+      msgBox.classList.remove('visible');
+      msgBox.classList.add('fade-out');
+    }, CONFIG.messageDuration);
+    msgTimers.push(hideTimer);
+  }
 
-        function scheduleMessages() {
-            CONFIG.messages.forEach(({ time, text, sub }) => {
-                const t = setTimeout(() => showMessage(text, sub), time * 1000);
-                msgTimers.push(t);
-            });
-        }
+  function scheduleMessages(fromTime = 0) {
+    // Ne planifier que les messages qui n'ont pas encore été affichés
+    const remaining = CONFIG.messages.filter(m => m.time > fromTime);
+    remaining.forEach(({ time, text, sub }) => {
+      const delay = (time - fromTime) * 1000;
+      const t = setTimeout(() => showMessage(text, sub), delay);
+      msgTimers.push(t);
+    });
+  }
 
-        function clearMessages() {
-            msgTimers.forEach(clearTimeout);
-            msgTimers = [];
-            msgBox.classList.remove('visible', 'fade-out');
-        }
+  function clearAllTimers() {
+    msgTimers.forEach(id => clearTimeout(id));
+    msgTimers = [];
+  }
 
-        /* ── Lancement ── */
-        btnPlay.addEventListener('click', () => {
-            music.play().catch(() => {
-                // Autoplay bloqué par le navigateur — message discret
-                console.warn('Autoplay bloqué. Interagissez avec la page d\'abord.');
-            });
+  /* ── Lancement ── */
+  btnPlay.addEventListener('click', () => {
+    music.play().catch(() => {
+      console.warn('Autoplay bloqué. Interagissez avec la page d\'abord.');
+    });
 
-            landing.classList.add('hidden');
-            playerBar.classList.add('visible');
-            startSlideshow();
-            scheduleMessages();
+    landing.classList.add('hidden');
+    playerBar.classList.add('visible');
+    startSlideshow();
+    scheduleMessages(0);
 
-            iconPause.style.display = 'block';
-            iconPlay.style.display = 'none';
-        });
+    isPaused = false;
+    iconPause.style.display = 'block';
+    iconPlay.style.display  = 'none';
+  });
 
-        /* ── Pause / Lecture ── */
-        btnToggle.addEventListener('click', () => {
-            if (music.paused) {
-                music.play();
-                iconPause.style.display = 'block';
-                iconPlay.style.display = 'none';
-            } else {
-                music.pause();
-                iconPause.style.display = 'none';
-                iconPlay.style.display = 'block';
-            }
-        });
+  /* ── Pause / Lecture — tout geler / tout reprendre ── */
+  btnToggle.addEventListener('click', () => {
+    if (music.paused) {
+      // ── REPRISE ──
+      isPaused = false;
+      music.play();
 
-        /* ── Barre de progression ── */
-        music.addEventListener('timeupdate', () => {
-            if (music.duration) {
-                const pct = (music.currentTime / music.duration) * 100;
-                progressFill.style.width = pct + '%';
-            }
-        });
+      // Reprendre le slideshow là où il s'était arrêté
+      resumeSlideshow();
 
-        // Clic sur la barre pour se déplacer dans la chanson
-        document.getElementById('progress-bar').addEventListener('click', (e) => {
-            const bar = e.currentTarget;
-            const ratio = e.offsetX / bar.offsetWidth;
-            music.currentTime = ratio * music.duration;
-        });
+      // Replanifier les messages restants depuis le temps actuel de la musique
+      clearAllTimers();
+      scheduleMessages(music.currentTime);
 
-        /* ── Fin de chanson ── */
-        music.addEventListener('ended', () => {
-            clearMessages();
-            clearInterval(slideTimer);
-            iconPause.style.display = 'none';
-            iconPlay.style.display = 'block';
-            // Message final
-            msgText.textContent = "Merci d'avoir vécu ce moment ♥";
-            msgSub.textContent = "";
-            msgBox.classList.add('visible');
-        });
-    </script>
+      // Remettre le message en cours visible s'il y en avait un
+      if (msgText.textContent) {
+        msgBox.classList.add('visible');
+        msgBox.classList.remove('fade-out');
+      }
+
+      iconPause.style.display = 'block';
+      iconPlay.style.display  = 'none';
+
+    } else {
+      // ── PAUSE ──
+      isPaused  = true;
+      pauseTime = music.currentTime;
+      music.pause();
+
+      // Stopper le slideshow
+      pauseSlideshow();
+
+      // Annuler tous les timers de messages (ils seront replanifiés à la reprise)
+      clearAllTimers();
+
+      // Figer le message affiché (enlever le fade-out automatique)
+      msgBox.classList.remove('fade-out');
+
+      iconPause.style.display = 'none';
+      iconPlay.style.display  = 'block';
+    }
+  });
+
+  /* ── Barre de progression ── */
+  music.addEventListener('timeupdate', () => {
+    if (music.duration) {
+      const pct = (music.currentTime / music.duration) * 100;
+      progressFill.style.width = pct + '%';
+    }
+  });
+
+  // Clic sur la barre pour se déplacer dans la chanson
+  document.getElementById('progress-bar').addEventListener('click', (e) => {
+    const bar = e.currentTarget;
+    const ratio = e.offsetX / bar.offsetWidth;
+    music.currentTime = ratio * music.duration;
+  });
+
+  /* ── Fin de chanson ── */
+  music.addEventListener('ended', () => {
+    clearAllTimers();
+    pauseSlideshow();
+    iconPause.style.display = 'none';
+    iconPlay.style.display  = 'block';
+    // Message final
+    msgText.textContent = "Merci d'avoir vécu ce moment ♥";
+    msgSub.textContent  = "";
+    msgBox.classList.add('visible');
+  });
+</script>
 </body>
-
 </html>
