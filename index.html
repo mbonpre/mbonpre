@@ -1,227 +1,587 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="fr">
+
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Surprise ❤️ — Scannez le QR</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Expérience Musicale</title>
     <style>
-        :root{--overlay: rgba(0,0,0,0.45);--accent: #ffd1dc}
-        *{box-sizing:border-box}
-        html,body{height:100%;margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial}
-        .wrap{position:relative;height:100vh;overflow:hidden;background:#000}
-        
-        /* Conteneur du Diaporama */
-        .slide-container{position:absolute;inset:0}
-        .slide{
-            position:absolute;
-            inset:0;
-            background-size:cover;
-            background-position:center;
-            opacity:0; 
-            transition:opacity 1s ease;
-        }
-        .slide.active{
-            opacity:1; 
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400&display=swap');
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
 
-        /* calque sombre + contenu */
-        .overlay{position:absolute;inset:0;background:var(--overlay);display:flex;align-items:center;justify-content:center;padding:20px}
-        .card{max-width:860px;width:100%;background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));border-radius:16px;padding:28px;color:white;backdrop-filter: blur(6px);box-shadow:0 8px 30px rgba(0,0,0,0.5)}
+        :root {
+            --gold: #C9A84C;
+            --gold-light: #E8C97A;
+            --white: #FAFAF8;
+            --black: #0A0A0A;
+            --transition-speed: 1.4s;
+            --msg-duration: 3500;
+            /* ms — modifiable */
+        }
 
-        .top-row{display:flex;align-items:center;gap:12px}
-        .avatar{width:64px;height:64px;border-radius:50%;overflow:hidden;flex:0 0 64px;border:2px solid rgba(255,255,255,0.12)}
-        .avatar img{width:100%;height:100%;object-fit:cover} 
-        .title{font-size:18px;margin:0}
-        .subtitle{font-size:13px;opacity:0.85}
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            background: var(--black);
+            color: var(--white);
+        }
 
-        .message-box{margin-top:18px;min-height:90px;font-size:20px;line-height:1.3}
-        .typing{display:inline-block;white-space:pre-wrap}
+        /* ── SLIDESHOW ── */
+        #slideshow {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+        }
 
-        .controls{display:flex;align-items:center;gap:10px;margin-top:18px}
-        .btn{padding:9px 12px;border-radius:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.06);cursor:pointer}
-        .progress{flex:1;height:8px;background:rgba(255,255,255,0.08);border-radius:6px;overflow:hidden}
-        .fill{height:100%;width:0%;background:linear-gradient(90deg,var(--accent),#ff9bbf);transition:width 0.15s}
+        .slide {
+            position: absolute;
+            inset: 0;
+            background-size: cover;
+            background-position: center;
+            opacity: 0;
+            transition: opacity var(--transition-speed) ease-in-out;
+        }
 
-        .small{font-size:13px;opacity:0.9;margin-top:10px}
+        /* Photos par défaut — remplacez src par vos propres images */
+        .slide:nth-child(1) {
+            background-image: url('https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=1600&q=80');
+        }
 
-        /* responsive */
-        @media (max-width:600px){.card{padding:18px}.message-box{font-size:17px}}
+        .slide:nth-child(2) {
+            background-image: url('https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1600&q=80');
+        }
 
-        /* fade in animation for card */
-        .card{transform:translateY(6px);opacity:0;animation:pop 0.6s forwards 0.4s}
-        @keyframes pop{to{transform:none;opacity:1}}
+        .slide:nth-child(3) {
+            background-image: url('https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=1600&q=80');
+        }
+
+        .slide:nth-child(4) {
+            background-image: url('https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1600&q=80');
+        }
+
+        .slide.active {
+            opacity: 1;
+        }
+
+        /* Overlay sombre pour lisibilité */
+        #slideshow::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to bottom,
+                    rgba(0, 0, 0, 0.55) 0%,
+                    rgba(0, 0, 0, 0.35) 50%,
+                    rgba(0, 0, 0, 0.65) 100%);
+        }
+
+        /* ── AUDIO (caché) ── */
+        /* Remplacez le src par votre fichier audio */
+        /* <audio id="music" src="votre-chanson.mp3" preload="auto"></audio> */
+
+        /* ── ÉCRAN D'ACCUEIL ── */
+        #landing {
+            position: fixed;
+            inset: 0;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2rem;
+            transition: opacity 1s ease, visibility 1s ease;
+        }
+
+        #landing.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        #landing h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(2rem, 5vw, 4rem);
+            font-weight: 400;
+            letter-spacing: 0.08em;
+            text-align: center;
+            color: var(--white);
+            text-shadow: 0 2px 24px rgba(0, 0, 0, 0.7);
+        }
+
+        #landing h1 em {
+            font-style: italic;
+            color: var(--gold-light);
+        }
+
+        #landing p.subtitle {
+            font-size: clamp(0.85rem, 2vw, 1.05rem);
+            font-weight: 300;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        /* Bouton Play */
+        #btn-play {
+            margin-top: 1rem;
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            border: 2px solid var(--gold);
+            background: rgba(201, 168, 76, 0.12);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s, transform 0.3s, box-shadow 0.3s;
+            backdrop-filter: blur(4px);
+        }
+
+        #btn-play:hover {
+            background: rgba(201, 168, 76, 0.28);
+            transform: scale(1.08);
+            box-shadow: 0 0 32px rgba(201, 168, 76, 0.4);
+        }
+
+        #btn-play svg {
+            width: 36px;
+            height: 36px;
+            fill: var(--gold-light);
+            margin-left: 4px;
+            /* centrage optique */
+        }
+
+        /* ── MESSAGES ── */
+        #message-display {
+            position: fixed;
+            inset: 0;
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+        }
+
+        .message-box {
+            text-align: center;
+            padding: 0 1.5rem;
+            opacity: 0;
+            transform: translateY(18px);
+            transition: opacity 0.8s ease, transform 0.8s ease;
+            max-width: 780px;
+        }
+
+        .message-box.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .message-box.fade-out {
+            opacity: 0;
+            transform: translateY(-14px);
+        }
+
+        .message-box .msg-text {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(1.4rem, 4vw, 3rem);
+            font-style: italic;
+            font-weight: 400;
+            color: var(--white);
+            text-shadow: 0 2px 30px rgba(0, 0, 0, 0.8);
+            line-height: 1.4;
+        }
+
+        .message-box .msg-sub {
+            margin-top: 0.6rem;
+            font-size: clamp(0.75rem, 1.6vw, 0.95rem);
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--gold-light);
+            font-weight: 300;
+        }
+
+        /* ── BARRE MUSICALE EN BAS ── */
+        #player-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 30;
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, transparent 100%);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.8s ease;
+        }
+
+        #player-bar.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        #player-bar .song-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        #player-bar .song-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1rem;
+            color: var(--white);
+        }
+
+        #player-bar .song-artist {
+            font-size: 0.75rem;
+            letter-spacing: 0.12em;
+            color: var(--gold-light);
+            text-transform: uppercase;
+        }
+
+        /* Barre de progression */
+        #progress-bar {
+            flex: 1;
+            margin: 0 2rem;
+            height: 3px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+            position: relative;
+            cursor: pointer;
+        }
+
+        #progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(to right, var(--gold), var(--gold-light));
+            border-radius: 2px;
+            transition: width 0.5s linear;
+        }
+
+        /* Bouton pause/play secondaire */
+        #btn-toggle {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: 1.5px solid rgba(201, 168, 76, 0.5);
+            background: transparent;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: border-color 0.2s, background 0.2s;
+        }
+
+        #btn-toggle:hover {
+            border-color: var(--gold);
+            background: rgba(201, 168, 76, 0.15);
+        }
+
+        #btn-toggle svg {
+            width: 18px;
+            height: 18px;
+            fill: var(--gold-light);
+        }
+
+        #btn-toggle .icon-pause {
+            display: none;
+        }
+
+        /* ── VIGNETTE COINS ── */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            z-index: 1;
+            background: radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.55) 100%);
+            pointer-events: none;
+        }
+
+        /* ── INDICATEUR SLIDE ── */
+        #dots {
+            position: fixed;
+            right: 1.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 25;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transition: background 0.4s, transform 0.4s;
+        }
+
+        .dot.active {
+            background: var(--gold-light);
+            transform: scale(1.4);
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+
+            .slide,
+            .message-box,
+            #landing {
+                transition: none !important;
+            }
+        }
     </style>
 </head>
+
 <body>
-    <div class="wrap">
-        
-        <div class="slide-container" id="slideshow">
-            <div class="slide active" style="background-image: url('im/photo1.jpg');"></div> 
-            <div class="slide" style="background-image: url('im/photo2.jpg');"></div>
-            <div class="slide" style="background-image: url('im/photho4.jpg');"></div>
+
+    <!-- AUDIO : remplacez src par votre fichier -->
+    <audio id="music" preload="auto">
+        <source src="votre-chanson.mp3" type="audio/mpeg">
+        <!-- Fallback : <source src="votre-chanson.ogg" type="audio/ogg"> -->
+    </audio>
+
+    <!-- SLIDESHOW -->
+    <div id="slideshow">
+        <div class="slide active"></div>
+        <div class="slide"></div>
+        <div class="slide"></div>
+        <div class="slide"></div>
+    </div>
+
+    <!-- INDICATEURS DOTS -->
+    <div id="dots">
+        <div class="dot active"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+    </div>
+
+    <!-- ÉCRAN D'ACCUEIL -->
+    <div id="landing">
+        <h1>Une <em>Expérience</em> Musicale</h1>
+        <p class="subtitle">Appuyez pour commencer</p>
+        <button id="btn-play" aria-label="Lancer la musique">
+            <svg viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+            </svg>
+        </button>
+    </div>
+
+    <!-- ZONE D'AFFICHAGE DES MESSAGES -->
+    <div id="message-display">
+        <div class="message-box" id="msg-box">
+            <p class="msg-text" id="msg-text"></p>
+            <p class="msg-sub" id="msg-sub"></p>
         </div>
+    </div>
 
-        <div class="overlay">
-            <div class="card">
-                <div class="top-row">
-                    <div class="avatar"><img id="avatarImg" src="im/photo1.jpg" alt="avatar"></div> 
-                    <div>
-                        <h3 class="title" id="cardTitle">Pour toi ❤️</h3>
-                        <div class="subtitle" id="cardSubtitle">Scanne ce QR pour une surprise</div>
-                    </div>
-                </div>
-
-                <div class="message-box">
-                    <span class="typing" id="typing"></span><span id="cursor">▌</span>
-                </div>
-
-                <div class="controls">
-                    <button class="btn" id="playBtn" disabled>▶️ Play</button>
-                    <button class="btn" id="pauseBtn">⏸️ Pause</button>
-                    <div class="progress" id="progress"><div class="fill" id="fill"></div></div>
-                    <div class="small" id="time">0:00</div>
-                </div>
-
-                <div class="small qr-note" id="qrNote">
-                    P.S. : Le secret de l'amour est maintenant gravé pour toujours !
-                </div>
-
-            </div>
+    <!-- BARRE MUSICALE -->
+    <div id="player-bar">
+        <div class="song-info">
+            <span class="song-title" id="song-title">Titre de la chanson</span>
+            <span class="song-artist" id="song-artist">Nom de l'artiste</span>
         </div>
-
-        <audio id="bgAudio" preload="auto" src="audio/song.mp3" muted></audio> 
+        <div id="progress-bar">
+            <div id="progress-fill"></div>
+        </div>
+        <button id="btn-toggle" aria-label="Pause / Lecture">
+            <svg class="icon-pause" viewBox="0 0 24 24">
+                <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+            </svg>
+            <svg class="icon-play" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+            </svg>
+        </button>
     </div>
 
     <script>
-        /* --- Gestion du Diaporama (Slideshow) --- */
+        /* ═══════════════════════════════════════════════
+           ★  CONFIGURATION — modifiez ici vos contenus ★
+           ═══════════════════════════════════════════════ */
+
+        const CONFIG = {
+            // Infos de la chanson (affichées dans la barre du bas)
+            songTitle: "Titre de votre chanson",
+            songArtist: "Nom de l'artiste",
+
+            // Messages avec leur sous-texte et le moment d'apparition (en secondes)
+            messages: [
+                { time: 2, text: "Bienvenue dans ce moment...", sub: "" },
+                { time: 8, text: "Laissez la musique vous emporter", sub: "Fermez les yeux" },
+                { time: 16, text: "Chaque note raconte une histoire", sub: "" },
+                { time: 24, text: "Celle-ci est pour vous", sub: "♥" },
+                { time: 32, text: "Merci d'être là", sub: "Profitez de chaque instant" },
+                { time: 45, text: "La vie est belle quand on l'écoute", sub: "" },
+                { time: 58, text: "Ce souvenir vous appartient désormais", sub: "Pour toujours" },
+            ],
+
+            // Durée d'affichage de chaque message (ms)
+            messageDuration: 3800,
+
+            // Intervalle entre chaque photo (ms)
+            slideInterval: 6000,
+
+            // Photos — remplacez les URLs par vos propres chemins (ex: "photo1.jpg")
+            // Les photos sont déjà définies en CSS (.slide:nth-child), mais vous pouvez
+            // les surcharger ici dynamiquement :
+            photos: [
+                // "photo1.jpg",
+                // "photo2.jpg",
+                // "photo3.jpg",
+                // "photo4.jpg",
+            ]
+        };
+
+        /* ═══════════════════════════════════════════════
+           CODE — ne pas modifier sauf si vous savez
+           ═══════════════════════════════════════════════ */
+
+        const music = document.getElementById('music');
+        const landing = document.getElementById('landing');
+        const btnPlay = document.getElementById('btn-play');
+        const btnToggle = document.getElementById('btn-toggle');
+        const playerBar = document.getElementById('player-bar');
+        const msgBox = document.getElementById('msg-box');
+        const msgText = document.getElementById('msg-text');
+        const msgSub = document.getElementById('msg-sub');
+        const progressFill = document.getElementById('progress-fill');
         const slides = document.querySelectorAll('.slide');
+        const dots = document.querySelectorAll('.dot');
+        const iconPause = btnToggle.querySelector('.icon-pause');
+        const iconPlay = btnToggle.querySelector('.icon-play');
+
+        // Remplir infos chanson
+        document.getElementById('song-title').textContent = CONFIG.songTitle;
+        document.getElementById('song-artist').textContent = CONFIG.songArtist;
+
+        // Surcharge des photos si fournies
+        if (CONFIG.photos.length === 4) {
+            CONFIG.photos.forEach((src, i) => {
+                slides[i].style.backgroundImage = `url('${src}')`;
+            });
+        }
+
+        /* ── Slideshow ── */
         let currentSlide = 0;
-        let slideInterval = null; // Déclaration à null pour empêcher l'autoplay initial
-        
+
         function nextSlide() {
             slides[currentSlide].classList.remove('active');
+            dots[currentSlide].classList.remove('active');
             currentSlide = (currentSlide + 1) % slides.length;
             slides[currentSlide].classList.add('active');
+            dots[currentSlide].classList.add('active');
         }
 
-        /* --- Messages synchronisés à la musique --- */
-        const messages = [
-            {at: 0, text: "Mon amour, cette petite surprise est entièrement dédiée à toi."},
-            {at: 6, text: "Depuis que nos chemins se sont croisés, ma vie est un poème."},
-            {at: 14, text: "Tu es ma lumière, celle qui me guide et m'inspire chaque jour."},
-            {at: 23, text: "Chaque rire, chaque silence à tes côtés est un trésor inestimable."},
-            {at: 35, text: "Je t'aime plus que les mots ne peuvent le dire."},
-            {at: 45, text: "Merci d'être toi, ma moitié parfaite. Pour aujourd'hui et pour toujours. ❤️"}
-        ];
-        
-        // audio & controls
-        const audio = document.getElementById('bgAudio');
-        const playBtn = document.getElementById('playBtn');
-        const pauseBtn = document.getElementById('pauseBtn');
-        const typingEl = document.getElementById('typing');
-        const cursor = document.getElementById('cursor');
-        const fill = document.getElementById('fill');
-        const timeEl = document.getElementById('time');
+        let slideTimer = null;
 
-        let shownIndex = -1; 
-        let typingTimer = null;
-        let showLaunched = false; 
-
-        function formatTime(s){
-            const m = Math.floor(s/60); const sec = Math.floor(s%60).toString().padStart(2,'0');
-            return m+':'+sec;
-        }
-        
-        // Fonction principale de lancement (musique, texte, diaporama)
-        function startPlayback() {
-            // Démarrer la lecture et débloquer le son
-            audio.play(); 
-            audio.muted = false; 
-            
-            // Lancer le diaporama si ce n'est pas déjà fait
-            if (slideInterval === null) {
-                slideInterval = setInterval(nextSlide, 8000);
-            }
-
-            // Lancer le premier message
-            if (showLaunched === false) {
-                if(messages.length > 0) {
-                    shownIndex = 0;
-                    typeText(messages[0].text);
-                }
-                showLaunched = true;
-            } 
-            
-            // Mettre à jour les boutons
-            playBtn.disabled = true; 
-            playBtn.style.opacity = '0.5'; 
-            
+        function startSlideshow() {
+            slideTimer = setInterval(nextSlide, CONFIG.slideInterval);
         }
 
-        // Tente de jouer dès que la page est chargée et rend le bouton disponible si l'autoplay échoue
-        document.addEventListener('DOMContentLoaded', () => {
-             // Initialiser la première slide pour qu'elle soit visible
-            slides[0].classList.add('active');
+        /* ── Messages ── */
+        let msgTimers = [];
 
-            audio.play().then(() => {
-                // Autoplay réussi (rare sur mobile)
-                startPlayback();
-            }).catch(() => {
-                // Autoplay refusé, autorise le bouton PLAY pour l'interaction utilisateur
-                playBtn.disabled = false;
-                playBtn.style.opacity = '1';
+        function showMessage(text, sub) {
+            // Effacer message en cours
+            msgBox.classList.remove('visible');
+            msgBox.classList.add('fade-out');
+
+            setTimeout(() => {
+                msgText.textContent = text;
+                msgSub.textContent = sub || '';
+                msgBox.classList.remove('fade-out');
+                msgBox.classList.add('visible');
+
+                // Disparaître après la durée configurée
+                setTimeout(() => {
+                    msgBox.classList.remove('visible');
+                    msgBox.classList.add('fade-out');
+                }, CONFIG.messageDuration);
+            }, 400);
+        }
+
+        function scheduleMessages() {
+            CONFIG.messages.forEach(({ time, text, sub }) => {
+                const t = setTimeout(() => showMessage(text, sub), time * 1000);
+                msgTimers.push(t);
             });
+        }
+
+        function clearMessages() {
+            msgTimers.forEach(clearTimeout);
+            msgTimers = [];
+            msgBox.classList.remove('visible', 'fade-out');
+        }
+
+        /* ── Lancement ── */
+        btnPlay.addEventListener('click', () => {
+            music.play().catch(() => {
+                // Autoplay bloqué par le navigateur — message discret
+                console.warn('Autoplay bloqué. Interagissez avec la page d\'abord.');
+            });
+
+            landing.classList.add('hidden');
+            playerBar.classList.add('visible');
+            startSlideshow();
+            scheduleMessages();
+
+            iconPause.style.display = 'block';
+            iconPlay.style.display = 'none';
         });
 
-
-        // Écouteur PLAY : Gère le lancement lorsque l'utilisateur clique
-        playBtn.addEventListener('click', startPlayback);
-
-
-        // Écouteur PAUSE : Gère l'arrêt
-        pauseBtn.addEventListener('click', ()=>{ 
-            audio.pause(); 
-            playBtn.disabled = false; 
-            playBtn.style.opacity = '1'; 
-            if (slideInterval) clearInterval(slideInterval); // Arrête le diaporama aussi
-            slideInterval = null;
-        });
-
-        // mise à jour progress et messages
-        audio.addEventListener('timeupdate', ()=>{
-            const pct = (audio.currentTime / audio.duration) || 0;
-            fill.style.width = (pct*100) + '%';
-            timeEl.textContent = formatTime(audio.currentTime);
-
-            // check messages
-            for(let i=0;i<messages.length;i++){
-                if(audio.currentTime >= messages[i].at && shownIndex < i){
-                    shownIndex = i;
-                    typeText(messages[i].text);
-                }
+        /* ── Pause / Lecture ── */
+        btnToggle.addEventListener('click', () => {
+            if (music.paused) {
+                music.play();
+                iconPause.style.display = 'block';
+                iconPlay.style.display = 'none';
+            } else {
+                music.pause();
+                iconPause.style.display = 'none';
+                iconPlay.style.display = 'block';
             }
         });
 
-        audio.addEventListener('ended', ()=>{ cursor.style.opacity='0'; });
+        /* ── Barre de progression ── */
+        music.addEventListener('timeupdate', () => {
+            if (music.duration) {
+                const pct = (music.currentTime / music.duration) * 100;
+                progressFill.style.width = pct + '%';
+            }
+        });
 
-        // typing effect
-        function typeText(text){
-            if(typingTimer) clearInterval(typingTimer);
-            typingEl.textContent = '';
-            cursor.style.opacity = '1';
-            let idx = 0;
-            typingTimer = setInterval(()=>{
-                typingEl.textContent += text.charAt(idx);
-                idx++;
-                if(idx >= text.length){
-                    clearInterval(typingTimer);
-                    typingTimer = null;
-                    let blink = 0;
-                    const b = setInterval(()=>{ cursor.style.visibility = (cursor.style.visibility === 'hidden' ? 'visible' : 'hidden'); if(++blink>6){ clearInterval(b); cursor.style.visibility='visible'; } }, 300);
-                }
-            }, 45);
-        }
-        
+        // Clic sur la barre pour se déplacer dans la chanson
+        document.getElementById('progress-bar').addEventListener('click', (e) => {
+            const bar = e.currentTarget;
+            const ratio = e.offsetX / bar.offsetWidth;
+            music.currentTime = ratio * music.duration;
+        });
+
+        /* ── Fin de chanson ── */
+        music.addEventListener('ended', () => {
+            clearMessages();
+            clearInterval(slideTimer);
+            iconPause.style.display = 'none';
+            iconPlay.style.display = 'block';
+            // Message final
+            msgText.textContent = "Merci d'avoir vécu ce moment ♥";
+            msgSub.textContent = "";
+            msgBox.classList.add('visible');
+        });
     </script>
 </body>
+
 </html>
