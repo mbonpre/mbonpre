@@ -469,17 +469,13 @@
   }
 
   /* ── Messages ── */
-  let msgTimers    = [];
-  let isPaused     = false;
-  let pauseTime    = 0;       // moment (music.currentTime) où on a pausé
-
-  // Sauvegarde des messages restants au moment de la pause
-  let pendingMessages = [];
+  let msgTimers  = [];
+  let isPaused   = false;
+  let isFinished = false; // true quand l'expérience est terminée
 
   function showMessage(text, sub) {
     msgBox.classList.remove('visible', 'fade-out');
-    void msgBox.offsetWidth; // reflow
-
+    void msgBox.offsetWidth;
     msgText.textContent = text;
     msgSub.textContent  = sub || '';
     msgBox.classList.add('visible');
@@ -491,23 +487,52 @@
     msgTimers.push(hideTimer);
   }
 
+  function finirExperience() {
+    // Fin en douceur comme la fin d'un film
+    isFinished = true;
+    clearAllTimers();
+
+    // Fondu du message
+    msgBox.classList.remove('visible');
+    msgBox.classList.add('fade-out');
+
+    // Baisser le volume progressivement puis tout arrêter
+    let vol = music.volume;
+    const fadeAudio = setInterval(() => {
+      vol = Math.max(0, vol - 0.05);
+      music.volume = vol;
+      if (vol <= 0) {
+        clearInterval(fadeAudio);
+        music.pause();
+        music.currentTime = 0;
+        music.volume = 1;
+        pauseSlideshow();
+        // Remettre le slideshow sur la première photo
+        slides.forEach(s => s.classList.remove('active'));
+        dots.forEach(d => d.classList.remove('active'));
+        currentSlide = 0;
+        slides[0].classList.add('active');
+        dots[0].classList.add('active');
+        slideStart = null;
+        // Afficher bouton play pour recommencer
+        iconPause.style.display = 'none';
+        iconPlay.style.display  = 'block';
+        isFinished = false;
+      }
+    }, 150);
+  }
+
   function scheduleMessages(fromTime = 0) {
     const remaining = CONFIG.messages.filter(m => m.time > fromTime);
     remaining.forEach(({ time, text, sub }, idx) => {
-      const delay = (time - fromTime) * 1000;
+      const delay  = (time - fromTime) * 1000;
       const isLast = idx === remaining.length - 1;
       const t = setTimeout(() => {
         showMessage(text, sub);
-        // Si c'est le dernier message, tout arrêter après son affichage
         if (isLast) {
-          setTimeout(() => {
-            music.pause();
-            pauseSlideshow();
-            iconPause.style.display = 'none';
-            iconPlay.style.display  = 'block';
-            msgBox.classList.remove('visible');
-            msgBox.classList.add('fade-out');
-          }, CONFIG.messageDuration + 1500);
+          // Après le dernier message : attendre qu'il soit lu puis fin en douceur
+          const endTimer = setTimeout(() => finirExperience(), CONFIG.messageDuration + 2000);
+          msgTimers.push(endTimer);
         }
       }, delay);
       msgTimers.push(t);
@@ -519,82 +544,79 @@
     msgTimers = [];
   }
 
-  /* ── Resynchronisation quand on recule/avance dans la chanson ── */
+  /* ── Resynchronisation quand on avance/recule dans la chanson ── */
   let seekTimeout = null;
   document.getElementById('progress-bar').addEventListener('click', (e) => {
     const bar   = e.currentTarget;
     const ratio = e.offsetX / bar.offsetWidth;
     music.currentTime = ratio * music.duration;
-
-    // Resynchroniser messages et slideshow depuis la nouvelle position
     clearAllTimers();
     pauseSlideshow();
-
-    // Petite attente pour laisser currentTime se stabiliser
     clearTimeout(seekTimeout);
     seekTimeout = setTimeout(() => {
       scheduleMessages(music.currentTime);
       if (!music.paused) resumeSlideshow();
-      // Effacer le message affiché qui ne correspond plus
       msgBox.classList.remove('visible');
       msgBox.classList.add('fade-out');
     }, 200);
   });
 
-  /* ── Lancement ── */
-  btnPlay.addEventListener('click', () => {
-    music.play().catch(() => {
-      console.warn('Autoplay bloqué. Interagissez avec la page d\'abord.');
-    });
-
-    landing.classList.add('hidden');
-    playerBar.classList.add('visible');
+  /* ── Lancement (ou recommencer depuis le début) ── */
+  function lancerExperience() {
+    music.currentTime = 0;
+    music.volume = 1;
+    music.play().catch(() => console.warn('Autoplay bloqué.'));
+    currentSlide = 0;
+    slides.forEach(s => s.classList.remove('active'));
+    dots.forEach(d => d.classList.remove('active'));
+    slides[0].classList.add('active');
+    dots[0].classList.add('active');
+    slideStart = null;
+    clearAllTimers();
+    msgBox.classList.remove('visible', 'fade-out');
+    msgText.textContent = '';
+    msgSub.textContent  = '';
     startSlideshow();
     scheduleMessages(0);
-
-    isPaused = false;
     iconPause.style.display = 'block';
     iconPlay.style.display  = 'none';
+  }
+
+  btnPlay.addEventListener('click', () => {
+    landing.classList.add('hidden');
+    playerBar.classList.add('visible');
+    lancerExperience();
   });
 
-  /* ── Pause / Lecture — tout geler / tout reprendre ── */
+  /* ── Pause / Lecture / Recommencer ── */
   btnToggle.addEventListener('click', () => {
     if (music.paused) {
-      // ── REPRISE ──
+      // Si la musique est à 0 (fin) → recommencer depuis le début
+      if (music.currentTime === 0 || music.ended) {
+        lancerExperience();
+        return;
+      }
+      // Sinon → reprendre là où on s'est arrêté
       isPaused = false;
       music.play();
-
-      // Reprendre le slideshow là où il s'était arrêté
       resumeSlideshow();
-
-      // Replanifier les messages restants depuis le temps actuel de la musique
       clearAllTimers();
       scheduleMessages(music.currentTime);
-
-      // Remettre le message en cours visible s'il y en avait un
       if (msgText.textContent) {
         msgBox.classList.add('visible');
         msgBox.classList.remove('fade-out');
       }
-
       iconPause.style.display = 'block';
       iconPlay.style.display  = 'none';
 
     } else {
-      // ── PAUSE ──
-      isPaused  = true;
-      pauseTime = music.currentTime;
+      // ── PAUSE — tout geler ──
+      isPaused = true;
       music.pause();
-
-      // Stopper le slideshow
       pauseSlideshow();
-
-      // Annuler tous les timers de messages (ils seront replanifiés à la reprise)
       clearAllTimers();
-
-      // Figer le message affiché (enlever le fade-out automatique)
+      // Figer le message affiché
       msgBox.classList.remove('fade-out');
-
       iconPause.style.display = 'none';
       iconPlay.style.display  = 'block';
     }
@@ -606,18 +628,6 @@
       const pct = (music.currentTime / music.duration) * 100;
       progressFill.style.width = pct + '%';
     }
-  });
-
-  /* ── Fin de chanson ── */
-  music.addEventListener('ended', () => {
-    clearAllTimers();
-    pauseSlideshow();
-    iconPause.style.display = 'none';
-    iconPlay.style.display  = 'block';
-    // Message final
-    msgText.textContent = "Merci d'avoir vécu ce moment ♥";
-    msgSub.textContent  = "";
-    msgBox.classList.add('visible');
   });
 </script>
 </body>
