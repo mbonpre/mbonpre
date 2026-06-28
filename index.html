@@ -531,7 +531,7 @@
         showMessage(text, sub);
         if (isLast) {
           // Après le dernier message : attendre qu'il soit lu puis fin en douceur
-          const endTimer = setTimeout(() => finirExperience(), CONFIG.messageDuration + 2000);
+          const endTimer = setTimeout(() => finirExperience(), CONFIG.messageDuration + 8000);
           msgTimers.push(endTimer);
         }
       }, delay);
