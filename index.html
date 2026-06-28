@@ -389,6 +389,10 @@
     // Durée d'affichage de chaque message (ms)
     messageDuration: 3800,
 
+    // Durée max autorisée sur la barre (secondes) = dernier message + temps final
+    // 124 (dernier msg) + 3.8s lecture + 11s musique finale ≈ 139s
+    maxDuration: 139,
+
     // Intervalle entre chaque photo (ms)
     slideInterval: 10000,
 
@@ -473,48 +477,49 @@
   let isPaused   = false;
   let isFinished = false; // true quand l'expérience est terminée
 
-  function showMessage(text, sub) {
+  function showMessage(text, sub, persistent = false) {
     msgBox.classList.remove('visible', 'fade-out');
     void msgBox.offsetWidth;
     msgText.textContent = text;
     msgSub.textContent  = sub || '';
     msgBox.classList.add('visible');
 
-    const hideTimer = setTimeout(() => {
-      msgBox.classList.remove('visible');
-      msgBox.classList.add('fade-out');
-    }, CONFIG.messageDuration);
-    msgTimers.push(hideTimer);
+    // Si persistent, le message reste jusqu'à la fin (pas de timer de disparition)
+    if (!persistent) {
+      const hideTimer = setTimeout(() => {
+        msgBox.classList.remove('visible');
+        msgBox.classList.add('fade-out');
+      }, CONFIG.messageDuration);
+      msgTimers.push(hideTimer);
+    }
   }
 
   function finirExperience() {
-    // Fin en douceur comme la fin d'un film
     isFinished = true;
     clearAllTimers();
 
-    // Fondu du message
-    msgBox.classList.remove('visible');
-    msgBox.classList.add('fade-out');
-
-    // Baisser le volume progressivement puis tout arrêter
+    // Le dernier message disparaît en même temps que le fondu audio
     let vol = music.volume;
     const fadeAudio = setInterval(() => {
-      vol = Math.max(0, vol - 0.05);
+      vol = Math.max(0, vol - 0.04);
       music.volume = vol;
+      // Fondu du message en parallèle
+      if (vol < 0.5) {
+        msgBox.classList.remove('visible');
+        msgBox.classList.add('fade-out');
+      }
       if (vol <= 0) {
         clearInterval(fadeAudio);
         music.pause();
         music.currentTime = 0;
         music.volume = 1;
         pauseSlideshow();
-        // Remettre le slideshow sur la première photo
         slides.forEach(s => s.classList.remove('active'));
         dots.forEach(d => d.classList.remove('active'));
         currentSlide = 0;
         slides[0].classList.add('active');
         dots[0].classList.add('active');
         slideStart = null;
-        // Afficher bouton play pour recommencer
         iconPause.style.display = 'none';
         iconPlay.style.display  = 'block';
         isFinished = false;
@@ -528,10 +533,11 @@
       const delay  = (time - fromTime) * 1000;
       const isLast = idx === remaining.length - 1;
       const t = setTimeout(() => {
-        showMessage(text, sub);
+        // Dernier message : persistent (reste affiché jusqu'au fondu)
+        showMessage(text, sub, isLast);
         if (isLast) {
-          // Après le dernier message : attendre qu'il soit lu puis fin en douceur
-          const endTimer = setTimeout(() => finirExperience(), CONFIG.messageDuration + 8000);
+          // 3.8s lecture + 11s musique (+3s demandées) puis fin en douceur
+          const endTimer = setTimeout(() => finirExperience(), CONFIG.messageDuration + 11000);
           msgTimers.push(endTimer);
         }
       }, delay);
@@ -544,12 +550,17 @@
     msgTimers = [];
   }
 
-  /* ── Resynchronisation quand on avance/recule dans la chanson ── */
+  /* ── Barre de progression — limitée à maxDuration ── */
   let seekTimeout = null;
   document.getElementById('progress-bar').addEventListener('click', (e) => {
-    const bar   = e.currentTarget;
-    const ratio = e.offsetX / bar.offsetWidth;
-    music.currentTime = ratio * music.duration;
+    if (!music.duration) return;
+    const bar      = e.currentTarget;
+    const ratio    = e.offsetX / bar.offsetWidth;
+    // Calculer le temps cible et le bloquer à maxDuration
+    const target   = ratio * music.duration;
+    const clamped  = Math.min(target, CONFIG.maxDuration);
+    music.currentTime = clamped;
+
     clearAllTimers();
     pauseSlideshow();
     clearTimeout(seekTimeout);
@@ -559,6 +570,19 @@
       msgBox.classList.remove('visible');
       msgBox.classList.add('fade-out');
     }, 200);
+  });
+
+  /* ── Barre de progression — affichage limité à maxDuration ── */
+  music.addEventListener('timeupdate', () => {
+    if (!music.duration) return;
+    // Bloquer la lecture si on dépasse maxDuration
+    if (music.currentTime >= CONFIG.maxDuration) {
+      finirExperience();
+      return;
+    }
+    // La barre affiche la progression sur maxDuration uniquement
+    const pct = (music.currentTime / CONFIG.maxDuration) * 100;
+    progressFill.style.width = Math.min(pct, 100) + '%';
   });
 
   /* ── Lancement (ou recommencer depuis le début) ── */
@@ -622,13 +646,7 @@
     }
   });
 
-  /* ── Barre de progression ── */
-  music.addEventListener('timeupdate', () => {
-    if (music.duration) {
-      const pct = (music.currentTime / music.duration) * 100;
-      progressFill.style.width = pct + '%';
-    }
-  });
+
 </script>
 </body>
 </html>
