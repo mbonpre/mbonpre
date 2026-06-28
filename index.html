@@ -422,11 +422,12 @@
   document.getElementById('song-artist').textContent = CONFIG.songArtist;
 
   // Surcharge des photos si fournies
-  if (CONFIG.photos.length === 4) {
-    CONFIG.photos.forEach((src, i) => {
-      slides[i].style.backgroundImage = `url('${src}')`;
-    });
+  // Surcharge des photos si fournies
+CONFIG.photos.forEach((src, i) => {
+  if (src && slides[i]) {
+    slides[i].style.backgroundImage = `url('${src}')`;
   }
+});
 
   /* ── Slideshow ── */
   let currentSlide = 0;
