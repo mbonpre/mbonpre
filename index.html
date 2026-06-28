@@ -395,9 +395,10 @@
     // Vos photos dans le dossier im/
     photos: [
       "im/image1.jpeg",
-      "im/photo1.jpg",
-      "im/photo2.jpg",
-      "im/photo3.jpg",
+      // Ajoutez vos autres photos ici quand elles sont uploadées :
+      // "im/photo2.jpeg",
+      // "im/photo3.jpeg",
+      // "im/photo4.jpeg",
     ]
   };
 
@@ -504,14 +505,9 @@
             pauseSlideshow();
             iconPause.style.display = 'none';
             iconPlay.style.display  = 'block';
-            // Afficher message final de fin
-            setTimeout(() => {
-              msgText.textContent = "Bon anniversaire ❤️";
-              msgSub.textContent  = "Pour toujours à tes côtés";
-              msgBox.classList.remove('fade-out');
-              msgBox.classList.add('visible');
-            }, CONFIG.messageDuration + 500);
-          }, CONFIG.messageDuration);
+            msgBox.classList.remove('visible');
+            msgBox.classList.add('fade-out');
+          }, CONFIG.messageDuration + 1500);
         }
       }, delay);
       msgTimers.push(t);
