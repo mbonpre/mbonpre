@@ -308,7 +308,7 @@
 
   <!-- AUDIO : remplacez src par votre fichier -->
   <audio id="music" preload="auto">
-    <source src="audio/foryou.mp3" type="audio/mpeg">
+    <source src="votre-chanson.mp3" type="audio/mpeg">
     <!-- Fallback : <source src="votre-chanson.ogg" type="audio/ogg"> -->
   </audio>
 
@@ -367,24 +367,20 @@
 
   const CONFIG = {
     // Infos de la chanson (affichées dans la barre du bas)
-    songTitle:  "One Call Away",
-    songArtist: "Charlie Puth",
+    songTitle:  "Titre de votre chanson",
+    songArtist: "Nom de l'artiste",
 
     // Messages avec leur sous-texte et le moment d'apparition (en secondes)
-   messages: [
-  { time: 3,  text: "Joyeux anniversaire...",                               sub: "À la plus belle" },
-  { time: 14, text: "La distance n'a jamais effacé ce que je ressens pour toi", sub: "" },
-  { time: 25, text: "Chaque appel vidéo me rappelle combien tu me manques", sub: "Mais aussi combien je t'aime" },
-  { time: 36, text: "Tu es partie poursuivre tes rêves",                    sub: "Et je suis fier de toi" },
-  { time: 47, text: "Chaque jour sans toi est un jour de plus vers nos retrouvailles", sub: "" },
-  { time: 58, text: "Des kilomètres nous séparent...",                      sub: "Mais mon cœur est toujours avec toi" },
-  { time: 69, text: "Tu me manques plus que les mots ne peuvent le dire",   sub: "" },
-  { time: 80, text: "Ce jour est le tien",                                  sub: "Profites-en pleinement" },
-  { time: 91, text: "Je ferme les yeux et tu es là",                        sub: "Toujours" },
-  { time: 102, text: "On se retrouvera bientôt",                            sub: "Je t'attendrai" },
-  { time: 113, text: "Jusqu'à ce jour-là...",                               sub: "Tu es dans chacune de mes pensées" },
-  { time: 124, text: "Bon anniversaire mon amour ❤️",                       sub: "Pour toujours à tes côtés" },
-],
+    messages: [
+      { time: 2,   text: "Bienvenue dans ce moment...",           sub: "" },
+      { time: 8,   text: "Laissez la musique vous emporter",      sub: "Fermez les yeux" },
+      { time: 16,  text: "Chaque note raconte une histoire",       sub: "" },
+      { time: 24,  text: "Celle-ci est pour vous",                 sub: "♥" },
+      { time: 32,  text: "Merci d'être là",                        sub: "Profitez de chaque instant" },
+      { time: 45,  text: "La vie est belle quand on l'écoute",     sub: "" },
+      { time: 58,  text: "Ce souvenir vous appartient désormais",  sub: "Pour toujours" },
+    ],
+
     // Durée d'affichage de chaque message (ms)
     messageDuration: 3800,
 
@@ -395,7 +391,7 @@
     // Les photos sont déjà définies en CSS (.slide:nth-child), mais vous pouvez
     // les surcharger ici dynamiquement :
     photos: [
-       "im/image1.jpeg",
+      // "photo1.jpg",
       // "photo2.jpg",
       // "photo3.jpg",
       // "photo4.jpg",
@@ -425,12 +421,11 @@
   document.getElementById('song-artist').textContent = CONFIG.songArtist;
 
   // Surcharge des photos si fournies
-  // Surcharge des photos si fournies
-CONFIG.photos.forEach((src, i) => {
-  if (src && slides[i]) {
-    slides[i].style.backgroundImage = `url('${src}')`;
+  if (CONFIG.photos.length === 4) {
+    CONFIG.photos.forEach((src, i) => {
+      slides[i].style.backgroundImage = `url('${src}')`;
+    });
   }
-});
 
   /* ── Slideshow ── */
   let currentSlide = 0;
@@ -493,11 +488,29 @@ CONFIG.photos.forEach((src, i) => {
   }
 
   function scheduleMessages(fromTime = 0) {
-    // Ne planifier que les messages qui n'ont pas encore été affichés
     const remaining = CONFIG.messages.filter(m => m.time > fromTime);
-    remaining.forEach(({ time, text, sub }) => {
+    remaining.forEach(({ time, text, sub }, idx) => {
       const delay = (time - fromTime) * 1000;
-      const t = setTimeout(() => showMessage(text, sub), delay);
+      const isLast = idx === remaining.length - 1;
+      const t = setTimeout(() => {
+        showMessage(text, sub);
+        // Si c'est le dernier message, tout arrêter après son affichage
+        if (isLast) {
+          setTimeout(() => {
+            music.pause();
+            pauseSlideshow();
+            iconPause.style.display = 'none';
+            iconPlay.style.display  = 'block';
+            // Afficher message final de fin
+            setTimeout(() => {
+              msgText.textContent = "Bon anniversaire ❤️";
+              msgSub.textContent  = "Pour toujours à tes côtés";
+              msgBox.classList.remove('fade-out');
+              msgBox.classList.add('visible');
+            }, CONFIG.messageDuration + 500);
+          }, CONFIG.messageDuration);
+        }
+      }, delay);
       msgTimers.push(t);
     });
   }
@@ -506,6 +519,28 @@ CONFIG.photos.forEach((src, i) => {
     msgTimers.forEach(id => clearTimeout(id));
     msgTimers = [];
   }
+
+  /* ── Resynchronisation quand on recule/avance dans la chanson ── */
+  let seekTimeout = null;
+  document.getElementById('progress-bar').addEventListener('click', (e) => {
+    const bar   = e.currentTarget;
+    const ratio = e.offsetX / bar.offsetWidth;
+    music.currentTime = ratio * music.duration;
+
+    // Resynchroniser messages et slideshow depuis la nouvelle position
+    clearAllTimers();
+    pauseSlideshow();
+
+    // Petite attente pour laisser currentTime se stabiliser
+    clearTimeout(seekTimeout);
+    seekTimeout = setTimeout(() => {
+      scheduleMessages(music.currentTime);
+      if (!music.paused) resumeSlideshow();
+      // Effacer le message affiché qui ne correspond plus
+      msgBox.classList.remove('visible');
+      msgBox.classList.add('fade-out');
+    }, 200);
+  });
 
   /* ── Lancement ── */
   btnPlay.addEventListener('click', () => {
@@ -572,13 +607,6 @@ CONFIG.photos.forEach((src, i) => {
       const pct = (music.currentTime / music.duration) * 100;
       progressFill.style.width = pct + '%';
     }
-  });
-
-  // Clic sur la barre pour se déplacer dans la chanson
-  document.getElementById('progress-bar').addEventListener('click', (e) => {
-    const bar = e.currentTarget;
-    const ratio = e.offsetX / bar.offsetWidth;
-    music.currentTime = ratio * music.duration;
   });
 
   /* ── Fin de chanson ── */
